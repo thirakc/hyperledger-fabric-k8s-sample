@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ca
+#  namespace: test-network
+spec:
+  type: NodePort
+  selector:
+    name: ca
+  ports:
+    - protocol: TCP
+      nodePort: 31154
+      targetPort: 7054
+      port: 7054
+      name: grpc
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ca-deployment
+#  namespace: test-network
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: ca
+    spec:
+      volumes:
+        - name: shared
+          persistentVolumeClaim:
+            claimName: shared-pvc
+      containers:
+        - name: ca
+          image: hyperledger/fabric-ca:1.4.4
+          command: ["sh", "-c", "fabric-ca-server start -c ${CONFIGYAML}"]
+          env:
+            - name: CONFIGYAML
+              value: /shared/cas/ca.yaml
+            - name: GODEBUG
+              value: "netdns=go"
+          ports:
+            - containerPort: 7054
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /shared
+              name: shared

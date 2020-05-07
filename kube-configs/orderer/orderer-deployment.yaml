@@ -1,0 +1,340 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orderer1-deployment
+#  namespace: test-network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orderer1-deployment
+  template:
+    metadata:
+      labels:
+        app: orderer1-deployment
+    spec:
+      containers:
+        - name: orderer1-deployment
+          image: hyperledger/fabric-orderer:1.4.4
+          imagePullPolicy: Always
+          env:
+            - name: TZ
+              value: "Asia/Bangkok"
+            - name: FABRIC_LOGGING_SPEC
+              value: info
+            - name: ORDERER_GENERAL_LISTENADDRESS
+              value: 0.0.0.0
+            - name: ORDERER_GENERAL_GENESISMETHOD
+              value: file
+            - name: ORDERER_GENERAL_GENESISFILE
+              value: /shared/channel-artifacts/genesis.block
+            - name: ORDERER_GENERAL_LOCALMSPID
+              value: OrdererMSP
+            - name: ORDERER_GENERAL_LOCALMSPDIR
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer1.blockchain.com/msp
+            # Enable TLS
+            - name: ORDERER_GENERAL_TLS_ENABLED
+              value: "true"
+            - name: ORDERER_GENERAL_TLS_PRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer1.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_TLS_CERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer1.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_TLS_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer1.blockchain.com/tls/ca.crt
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer1.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer1.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_CLUSTER_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer1.blockchain.com/tls/ca.crt
+            # Prometheus
+            - name: ORDERER_OPERATIONS_LISTENADDRESS
+              value: 0.0.0.0:8443
+            - name: ORDERER_METRICS_PROVIDER
+              value: prometheus
+          command: ["orderer"]
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+#            - name: orderer1-block-data
+#              mountPath: /var/hyperledger/production
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-pvc
+#        - name: orderer1-block-data
+#          persistentVolumeClaim:
+#            claimName: orderer-block-data-pvc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orderer2-deployment
+#  namespace: test-network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orderer2-deployment
+  template:
+    metadata:
+      labels:
+        app: orderer2-deployment
+    spec:
+      containers:
+        - name: orderer2-deployment
+          image: hyperledger/fabric-orderer:1.4.4
+          imagePullPolicy: Always
+          env:
+            - name: TZ
+              value: "Asia/Bangkok"
+            - name: FABRIC_LOGGING_SPEC
+              value: info
+            - name: ORDERER_GENERAL_LISTENADDRESS
+              value: 0.0.0.0
+            - name: ORDERER_GENERAL_GENESISMETHOD
+              value: file
+            - name: ORDERER_GENERAL_GENESISFILE
+              value: /shared/channel-artifacts/genesis.block
+            - name: ORDERER_GENERAL_LOCALMSPID
+              value: OrdererMSP
+            - name: ORDERER_GENERAL_LOCALMSPDIR
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer2.blockchain.com/msp
+            # Enable TLS
+            - name: ORDERER_GENERAL_TLS_ENABLED
+              value: "true"
+            - name: ORDERER_GENERAL_TLS_PRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer2.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_TLS_CERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer2.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_TLS_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer2.blockchain.com/tls/ca.crt
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer2.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer2.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_CLUSTER_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer2.blockchain.com/tls/ca.crt
+            # Prometheus
+            - name: ORDERER_OPERATIONS_LISTENADDRESS
+              value: 0.0.0.0:8443
+            - name: ORDERER_METRICS_PROVIDER
+              value: prometheus
+          command: ["orderer"]
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+      #            - name: orderer2-block-data
+      #              mountPath: /var/hyperledger/production
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-pvc
+#        - name: orderer1-block-data
+#          persistentVolumeClaim:
+#            claimName: orderer2-block-data-pvc
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orderer3-deployment
+#  namespace: test-network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orderer3-deployment
+  template:
+    metadata:
+      labels:
+        app: orderer3-deployment
+    spec:
+      containers:
+        - name: orderer3-deployment
+          image: hyperledger/fabric-orderer:1.4.4
+          imagePullPolicy: Always
+          env:
+            - name: TZ
+              value: "Asia/Bangkok"
+            - name: FABRIC_LOGGING_SPEC
+              value: info
+            - name: ORDERER_GENERAL_LISTENADDRESS
+              value: 0.0.0.0
+            - name: ORDERER_GENERAL_GENESISMETHOD
+              value: file
+            - name: ORDERER_GENERAL_GENESISFILE
+              value: /shared/channel-artifacts/genesis.block
+            - name: ORDERER_GENERAL_LOCALMSPID
+              value: OrdererMSP
+            - name: ORDERER_GENERAL_LOCALMSPDIR
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer3.blockchain.com/msp
+            # Enable TLS
+            - name: ORDERER_GENERAL_TLS_ENABLED
+              value: "true"
+            - name: ORDERER_GENERAL_TLS_PRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer3.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_TLS_CERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer3.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_TLS_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer3.blockchain.com/tls/ca.crt
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer3.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer3.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_CLUSTER_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer3.blockchain.com/tls/ca.crt
+            # Prometheus
+            - name: ORDERER_OPERATIONS_LISTENADDRESS
+              value: 0.0.0.0:8443
+            - name: ORDERER_METRICS_PROVIDER
+              value: prometheus
+          command: ["orderer"]
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+      #            - name: orderer3-block-data
+      #              mountPath: /var/hyperledger/production
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-pvc
+#        - name: orderer1-block-data
+#          persistentVolumeClaim:
+#            claimName: orderer3-block-data-pvc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orderer4-deployment
+#  namespace: test-network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orderer4-deployment
+  template:
+    metadata:
+      labels:
+        app: orderer4-deployment
+    spec:
+      containers:
+        - name: orderer4-deployment
+          image: hyperledger/fabric-orderer:1.4.4
+          imagePullPolicy: Always
+          env:
+            - name: TZ
+              value: "Asia/Bangkok"
+            - name: FABRIC_LOGGING_SPEC
+              value: info
+            - name: ORDERER_GENERAL_LISTENADDRESS
+              value: 0.0.0.0
+            - name: ORDERER_GENERAL_GENESISMETHOD
+              value: file
+            - name: ORDERER_GENERAL_GENESISFILE
+              value: /shared/channel-artifacts/genesis.block
+            - name: ORDERER_GENERAL_LOCALMSPID
+              value: OrdererMSP
+            - name: ORDERER_GENERAL_LOCALMSPDIR
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer4.blockchain.com/msp
+            # Enable TLS
+            - name: ORDERER_GENERAL_TLS_ENABLED
+              value: "true"
+            - name: ORDERER_GENERAL_TLS_PRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer4.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_TLS_CERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer4.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_TLS_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer4.blockchain.com/tls/ca.crt
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer4.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer4.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_CLUSTER_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer4.blockchain.com/tls/ca.crt
+            # Prometheus
+            - name: ORDERER_OPERATIONS_LISTENADDRESS
+              value: 0.0.0.0:8443
+            - name: ORDERER_METRICS_PROVIDER
+              value: prometheus
+          command: ["orderer"]
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+      #            - name: orderer4-block-data
+      #              mountPath: /var/hyperledger/production
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-pvc
+#        - name: orderer1-block-data
+#          persistentVolumeClaim:
+#            claimName: orderer4-block-data-pvc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orderer5-deployment
+#  namespace: test-network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orderer5-deployment
+  template:
+    metadata:
+      labels:
+        app: orderer5-deployment
+    spec:
+      containers:
+        - name: orderer5-deployment
+          image: hyperledger/fabric-orderer:1.4.4
+          imagePullPolicy: Always
+          env:
+            - name: TZ
+              value: "Asia/Bangkok"
+            - name: FABRIC_LOGGING_SPEC
+              value: info
+            - name: ORDERER_GENERAL_LISTENADDRESS
+              value: 0.0.0.0
+            - name: ORDERER_GENERAL_GENESISMETHOD
+              value: file
+            - name: ORDERER_GENERAL_GENESISFILE
+              value: /shared/channel-artifacts/genesis.block
+            - name: ORDERER_GENERAL_LOCALMSPID
+              value: OrdererMSP
+            - name: ORDERER_GENERAL_LOCALMSPDIR
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer5.blockchain.com/msp
+            # Enable TLS
+            - name: ORDERER_GENERAL_TLS_ENABLED
+              value: "true"
+            - name: ORDERER_GENERAL_TLS_PRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer5.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_TLS_CERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer5.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_TLS_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer5.blockchain.com/tls/ca.crt
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer5.blockchain.com/tls/server.key
+            - name: ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer5.blockchain.com/tls/server.crt
+            - name: ORDERER_GENERAL_CLUSTER_ROOTCAS
+              value: /shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer5.blockchain.com/tls/ca.crt
+            # Prometheus
+            - name: ORDERER_OPERATIONS_LISTENADDRESS
+              value: 0.0.0.0:8443
+            - name: ORDERER_METRICS_PROVIDER
+              value: prometheus
+          command: ["orderer"]
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+      #            - name: orderer5-block-data
+      #              mountPath: /var/hyperledger/production
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-pvc
+#        - name: orderer1-block-data
+#          persistentVolumeClaim:
+#            claimName: orderer5-block-data-pvc

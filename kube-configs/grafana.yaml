@@ -1,0 +1,53 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: monitoring-grafana
+  labels:
+    name: grafana
+#  namespace: test-network
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: grafana
+    spec:
+      containers:
+        - image: grafana/grafana
+          name: grafana
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2500Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: data
+      restartPolicy: Always
+      volumes:
+        - emptyDir: {}
+          name: data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  labels:
+    run: grafana
+#  namespace: test-network
+spec:
+  type: NodePort
+  selector:
+    name: grafana
+  ports:
+  - name: grafanaui
+    protocol: TCP
+    port: 3000
+    targetPort: 3000
+    nodePort: 30883

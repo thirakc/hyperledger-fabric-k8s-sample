@@ -1,0 +1,258 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: org2peer1-deployment
+#  namespace: test-network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: org2peer1-deployment
+  template:
+    metadata:
+      labels:
+        app: org2peer1-deployment
+    spec:
+      ##############################################
+      # Add hostname inside peer to resolve domain #
+      # Required for ingress                       #
+      ##############################################
+#      hostAliases:
+#        - ip: "10.9.211.106"
+#          hostnames:
+#            - "org2peer2.secondorg.com"
+      containers:
+        - name: db
+          image: hyperledger/fabric-couchdb:0.4.18
+          env:
+            - name: COUCHDB_USER
+              value: admin
+            - name: COUCHDB_PASSWORD
+              value: adminpw
+          ports:
+            - containerPort: 5984
+              protocol: TCP
+        - name: dind
+          image: docker:18.09.7-dind
+          env:
+            - name: LICENSE
+              value: accept
+          ports:
+            - containerPort: 2375
+              protocol: TCP
+          securityContext:
+            privileged: true
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            runAsUser: 0
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+        - name: org2peer1
+          image: hyperledger/fabric-peer:1.4.4
+          imagePullPolicy: Always
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: TZ
+              value: "Asia/Bangkok"
+            - name: CORE_CHAINCODE_LOGGING_LEVEL
+              value: info
+            - name: CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS
+              value: localhost:5984
+            - name: CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME
+              value: admin
+            - name: CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD
+              value: adminpw
+            - name: CORE_LEDGER_STATE_STATEDATABASE
+              value: CouchDB
+            - name: CORE_PEER_ADDRESS
+              value: org2peer1:7051
+            - name: CORE_PEER_ID
+              value: org2peer1.secondorg.com
+            - name: CORE_PEER_LOCALMSPID
+              value: Org2MSP
+            - name: CORE_PEER_MSPCONFIGPATH
+              value: /shared/crypto-config/peerOrganizations/secondorg.com/peers/org2peer1.secondorg.com/msp
+            - name: CORE_PEER_NETWORKID
+              value: nid1
+            - name: CORE_VM_ENDPOINT
+              value: localhost:2375
+            - name: FABRIC_LOGGING_SPEC
+              value: info
+            - name: CORE_VM_DOCKER_ATTACHSTDOUT
+              value: 'true'
+            - name: FABRIC_LOGGING_SPEC
+              value: info
+            - name: CORE_PEER_ADDRESSAUTODETECT
+              value: "true"
+            - name: CORE_PEER_TLS_ENABLED
+              value: "true"
+            - name: CORE_PEER_TLS_KEY_FILE
+              value: /shared/crypto-config/peerOrganizations/secondorg.com/peers/org2peer1.secondorg.com/tls/server.key
+            - name: CORE_PEER_TLS_CERT_FILE
+              value: /shared/crypto-config/peerOrganizations/secondorg.com/peers/org2peer1.secondorg.com/tls/server.crt
+            - name: CORE_PEER_TLS_ROOTCERT_FILE
+              value: /shared/crypto-config/peerOrganizations/secondorg.com/peers/org2peer1.secondorg.com/tls/ca.crt
+            - name: CORE_PEER_GOSSIP_SKIPHANDSHAKE
+              value: "true"
+            - name: CORE_PEER_GOSSIP_ORGLEADER
+              value: "false"
+            - name: CORE_PEER_GOSSIP_USELEADERELECTION
+              value: "true"
+            - name: CORE_PEER_GOSSIP_BOOTSTRAP
+              value: org2peer1.test-network.svc.cluster.local:7051
+            - name: CORE_PEER_GOSSIP_EXTERNALENDPOINT
+              value: org2peer1.test-network.svc.cluster.local:7051 #Must be org2peer1.secondorg.com:443 for ingress or <<ip>>:<<nodeport>> for nodePort
+            - name: CORE_PEER_GOSSIP_ENDPOINT
+              value: org2peer1.test-network.svc.cluster.local:7051
+            - name: CORE_OPERATIONS_LISTENADDRESS
+              value: 0.0.0.0:9443
+            - name: CORE_METRICS_PROVIDER
+              value: prometheus
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+      #            - name: ktb-block-data
+      #              mountPath: /var/hyperledger/production
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-pvc
+#        - name: ktb-block-data
+#          persistentVolumeClaim:
+#            claimName: ktb-block-data-pvc
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: org2peer2-deployment
+#  namespace: test-network
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: org2peer2-deployment
+  template:
+    metadata:
+      labels:
+        app: org2peer2-deployment
+    spec:
+      ##############################################
+      # Add hostname inside peer to resolve domain #
+      # Required for ingress                       #
+      ##############################################
+      #      hostAliases:
+      #        - ip: "10.9.211.106"
+      #          hostnames:
+      #            - "org2peer1.secondorg.com"
+      containers:
+        - name: db
+          image: hyperledger/fabric-couchdb:0.4.18
+          env:
+            - name: COUCHDB_USER
+              value: admin
+            - name: COUCHDB_PASSWORD
+              value: adminpw
+          ports:
+            - containerPort: 5984
+              protocol: TCP
+        - name: dind
+          image: docker:18.09.7-dind
+          env:
+            - name: LICENSE
+              value: accept
+          ports:
+            - containerPort: 2375
+              protocol: TCP
+          securityContext:
+            privileged: true
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            runAsUser: 0
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+        - name: org2peer2
+          image: hyperledger/fabric-peer:1.4.4
+          imagePullPolicy: Always
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: TZ
+              value: "Asia/Bangkok"
+            - name: CORE_CHAINCODE_LOGGING_LEVEL
+              value: info
+            - name: CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS
+              value: localhost:5984
+            - name: CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME
+              value: admin
+            - name: CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD
+              value: adminpw
+            - name: CORE_LEDGER_STATE_STATEDATABASE
+              value: CouchDB
+            - name: CORE_PEER_ADDRESS
+              value: org2peer2:7051
+            - name: CORE_PEER_ID
+              value: peer2.secondorg.com
+            - name: CORE_PEER_LOCALMSPID
+              value: Org2MSP
+            - name: CORE_PEER_MSPCONFIGPATH
+              value: /shared/crypto-config/peerOrganizations/secondorg.com/peers/org2peer2.secondorg.com/msp
+            - name: CORE_VM_ENDPOINT
+              value: localhost:2375
+            - name: FABRIC_LOGGING_SPEC
+              value: info
+            - name: CORE_PEER_NETWORKID
+              value: nid1
+            - name: CORE_VM_DOCKER_ATTACHSTDOUT
+              value: 'true'
+            - name: FABRIC_LOGGING_SPEC
+              value: info
+            - name: CORE_PEER_ADDRESSAUTODETECT
+              value: "true"
+            - name: CORE_PEER_TLS_ENABLED
+              value: "true"
+            - name: CORE_PEER_TLS_KEY_FILE
+              value: /shared/crypto-config/peerOrganizations/secondorg.com/peers/org2peer2.secondorg.com/tls/server.key
+            - name: CORE_PEER_TLS_CERT_FILE
+              value: /shared/crypto-config/peerOrganizations/secondorg.com/peers/org2peer2.secondorg.com/tls/server.crt
+            - name: CORE_PEER_TLS_ROOTCERT_FILE
+              value: /shared/crypto-config/peerOrganizations/secondorg.com/peers/org2peer2.secondorg.com/tls/ca.crt
+            - name: CORE_PEER_GOSSIP_SKIPHANDSHAKE
+              value: "true"
+            - name: CORE_PEER_GOSSIP_ORGLEADER
+              value: "false"
+            - name: CORE_PEER_GOSSIP_USELEADERELECTION
+              value: "true"
+            - name: CORE_PEER_GOSSIP_BOOTSTRAP
+              value: org2peer2.test-network.svc.cluster.local:7051
+            - name: CORE_PEER_GOSSIP_EXTERNALENDPOINT
+              value: org2peer2.test-network.svc.cluster.local:7051 #Must be org2peer2.secondorg.com:443 for ingress or <<ip>>:<<nodeport>> for nodePort
+            - name: CORE_PEER_GOSSIP_ENDPOINT
+              value: org2peer2.test-network.svc.cluster.local:7051
+            - name: CORE_OPERATIONS_LISTENADDRESS
+              value: 0.0.0.0:9443
+            - name: CORE_METRICS_PROVIDER
+              value: prometheus
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+      #            - name: ktb-block-data
+      #              mountPath: /var/hyperledger/production
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-pvc
+#        - name: ktb-block-data
+#          persistentVolumeClaim:
+#            claimName: ktb-block-data-pvc

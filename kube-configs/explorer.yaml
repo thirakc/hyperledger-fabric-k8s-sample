@@ -1,0 +1,220 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: explorer-cm
+#  namespace: test-network
+data:
+  config.json: |-
+    {
+      "network-configs": {
+        "network-1": {
+          "version": "1.0",
+          "clients": {
+            "client-1": {
+              "tlsEnable": true,
+              "organization": "Org1MSP",
+              "channel": "test-channel",
+              "credentialStore": {
+                "path": "./tmp/credentialStore_Rd/credential",
+                "cryptoStore": {
+                  "path": "./tmp/credentialStore_Rd/crypto"
+                }
+              }
+            },
+            "client-2": {
+              "tlsEnable": true,
+              "organization": "Org2MSP",
+              "channel": "test-channel",
+              "credentialStore": {
+                "path": "./tmp/credentialStore_Ktb/credential",
+                "cryptoStore": {
+                 "path": "./tmp/credentialStore_Ktb/crypto"
+                }
+              }
+            }
+          },
+          "channels": {
+            "test-channel": {
+              "peers": {
+                "org1peer1": {},
+                "org2peer1": {}
+              },
+              "connection": {
+                "timeout": {
+                  "peer": {
+                    "endorser": "6000",
+                    "eventHub": "6000",
+                    "eventReg": "6000"
+                  }
+                }
+              }
+            }
+          },
+          "organizations": {
+            "Org1MSP": {
+              "mspid": "Org1MSP",
+              "fullpath": false,
+              "adminPrivateKey": {
+                "path": "/shared/crypto-config/peerOrganizations/firstorg.com/users/Admin@firstorg.com/msp/keystore"
+              },
+              "signedCert": {
+                "path": "/shared/crypto-config/peerOrganizations/firstorg.com/users/Admin@firstorg.com/msp/signcerts"
+              },
+              "peers": ["org1peer1"]
+            },
+            "Org2MSP": {
+              "mspid": "Org2MSP",
+              "adminPrivateKey": {
+                "path": "/shared/crypto-config/peerOrganizations/secondorg.com/users/Admin@secondorg.com/msp/keystore"
+              },
+              "signedCert": {
+                "path": "/shared/crypto-config/peerOrganizations/secondorg.com/users/Admin@secondorg.com/msp/signcerts"
+              },
+              "peers": ["org2peer1"]
+            },
+            "OrdererMSP": {
+              "mspid": "OrdererMSP",
+              "adminPrivateKey": {
+                "path": "/shared/crypto-config/ordererOrganizations/blockchain.com/users/Admin@blockchain.com/msp/keystore"
+              }
+            }
+          },
+          "peers": {
+            "org1peer1": {
+              "tlsCACerts": {
+                "path": "/shared/crypto-config/peerOrganizations/firstorg.com/peers/org1peer1.firstorg.com/tls/ca.crt"
+              },
+              "url": "grpcs://org1peer1:7051",
+              "eventUrl": "grpcs://org1peer1:7053",
+              "grpcOptions": {
+                "ssl-target-name-override": "org1peer1"
+              }
+            },
+            "org2peer1": {
+              "tlsCACerts": {
+                "path": "/shared/crypto-config/peerOrganizations/secondorg.com/peers/org2peer1.secondorg.com/tls/ca.crt"
+              },
+              "url": "grpcs://org2peer1:7051",
+              "eventUrl": "grpcs://org2peer1:7053",
+              "grpcOptions": {
+                "ssl-target-name-override": "org2peer1"
+              }
+            }
+          },
+          "orderers": {
+            "orderer1": {
+              "tlsCACerts": {
+                "path": "/shared/crypto-config/ordererOrganizations/blockchain.com/orderers/orderer1.blockchain.com/tls/ca.crt"
+              },
+              "url": "grpcs://orderer1:7050",
+              "grpcOptions": {
+                "ssl-target-name-override": "orderer1"
+              }
+            }
+          }
+        }
+      },
+      "configtxgenToolPath": "/shared/bin",
+      "license": "Apache-2.0"
+    }
+  appconfig.json: |-
+    {
+      "host": "localhost",
+      "port": "8080",
+      "license": "Apache-2.0"
+    }
+  explorerconfig.json: |-
+    {
+      "persistence": "postgreSQL",
+      "platforms": ["fabric"],
+      "postgreSQL": {
+        "host": "127.0.0.1",
+        "port": "5432",
+        "database": "fabricexplorer",
+        "username": "hppoc",
+        "passwd": "password"
+      },
+      "sync": {
+        "type": "local",
+        "platform": "fabric",
+        "blocksSyncTime": "1"
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: explorer
+#  namespace: test-network
+spec:
+  type: NodePort
+  selector:
+    name: explorer
+  ports:
+  - protocol: TCP
+    targetPort: 8080
+    nodePort: 30880
+    port: 8080
+    name: explorer
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: explorer
+#  namespace: test-network
+spec:
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: explorer
+    spec:
+      initContainers:
+        - name: dbcheck
+          image: hyperledger/explorer-db:1.0.0-rc2
+          command: ['sh', '-c', 'until pg_isready -h explorerdb -p 5432; do echo waiting for database; sleep 2; done;']
+      containers:
+        - image: hyperledger/explorer:1.0.0-rc2
+          name: explorer
+          env:
+           - name: DATABASE_HOST
+             value: explorerdb
+           - name: DATABASE_USERNAME
+             value: hppoc
+           - name: DATABASE_PASSWD
+             value: password
+           - name: SYNC_LOG_PATH
+             value: /shared/explorer
+           - name: DISCOVERY_AS_LOCALHOST
+             value: "false"
+          ports:
+           - containerPort: 8080
+             protocol: TCP
+             name: explorer
+          volumeMounts:
+            - mountPath: /opt/explorer/app/platform/fabric/config.json
+              subPath: config.json # this is to make sure that other files in the folder are not deleted
+              name: config
+            - mountPath: /opt/explorer/app/explorerconfig.json
+              subPath: explorerconfig.json
+              name: explorerconfig
+            - mountPath: /opt/explorer/appconfig.json
+              subPath: appconfig.json
+              name: appconfig
+            - mountPath: /shared
+              name: shared
+      volumes:
+        - name: config
+          configMap:
+            name: explorer-cm
+        - name: appconfig
+          configMap:
+            name: explorer-cm
+        - name: explorerconfig
+          configMap:
+            name: explorer-cm
+        - name: shared
+          persistentVolumeClaim:
+            claimName: shared-pvc

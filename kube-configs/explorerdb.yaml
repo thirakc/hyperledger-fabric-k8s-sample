@@ -1,0 +1,106 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: explorerdb-cm
+#  namespace: test-network
+data:
+   createdb.sh: |+
+    #!/bin/bash
+
+    echo "Copying ENV variables into temp file..."
+    node processenv.js
+    if [ $( jq .DATABASE_USERNAME /tmp/process.env.json) == null ]; then
+      export USER=$( jq .postgreSQL.username ../../../../explorerconfig.json )
+    else
+      export USER=$( jq .DATABASE_USERNAME /tmp/process.env.json)
+    fi
+    if [ $(jq .DATABASE_DATABASE /tmp/process.env.json) == null ]; then
+      export DATABASE=$(jq .postgreSQL.database ../../../../explorerconfig.json )
+    else
+      export DATABASE=$(jq .DATABASE_DATABASE /tmp/process.env.json)
+    fi
+    if [ $(jq .DATABASE_PASSWORD /tmp/process.env.json) == null ]; then
+      export PASSWD=$(jq .postgreSQL.passwd ../../../../explorerconfig.json | sed "y/\"/'/")
+    else
+      export PASSWD=$(jq .DATABASE_PASSWORD /tmp/process.env.json |  sed "y/\"/'/")
+    fi
+    echo "USER=${USER}"
+    echo "DATABASE=${DATABASE}"
+    echo "PASSWD=${PASSWD}"
+    if [ -f /tmp/process.env.json ] ; then
+        rm /tmp/process.env.json
+    fi
+    echo "Executing SQL scripts..."
+    case $OSTYPE in
+    darwin*) psql postgres -v dbname=$DATABASE -v user=$USER -v passwd=$PASSWD -f ./explorerpg.sql ;
+    psql postgres -v dbname=$DATABASE -v user=$USER -v passwd=$PASSWD -f ./updatepg.sql ;;
+    linux*) psql -v dbname=$DATABASE -v user=$USER -v passwd=$PASSWD -f ./explorerpg.sql ;
+    psql -v dbname=$DATABASE -v user=$USER -v passwd=$PASSWD -f ./updatepg.sql ;;
+    esac
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: explorerdb
+#  namespace: test-network
+spec:
+  type: NodePort
+  selector:
+    name: explorerdb
+  ports:
+  - protocol: TCP
+    targetPort: 5432
+    nodePort: 30543
+    port: 5432
+    name: db
+  - protocol: TCP
+    targetPort: 8080
+    nodePort: 30888
+    port: 30888
+    name: adminer
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: explorerdb
+#  namespace: test-network
+spec:
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: explorerdb
+    spec:
+      containers:
+        - image: hyperledger/explorer-db:1.0.0-rc2
+          name: db
+          env:
+           - name: DATABASE_DATABASE
+             value: fabricexplorer
+           - name: DATABASE_USERNAME
+             value: hppoc
+           - name: DATABASE_PASSWORD
+             value: password
+           - name: POSTGRES_USER
+             value: root
+          ports:
+           - containerPort: 5432
+             protocol: TCP
+             name: explorerdb
+          volumeMounts:
+            - mountPath: /docker-entrypoint-initdb.d/createdb.sh
+              subPath: createdb.sh
+              name: createdb
+        - image: adminer:4.7.1
+          name: adminer
+          ports:
+           - containerPort: 8080
+             protocol: TCP
+             name: adminer
+      volumes:
+        - name: createdb
+          configMap:
+            name: explorerdb-cm
+            defaultMode: 0777

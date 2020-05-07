@@ -1,0 +1,51 @@
+version: '2'
+
+services:
+  couchdb1.rd:
+    container_name: couchdb1-rd-service
+    image: hyperledger/fabric-couchdb
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - 5984:5984
+#    volumes:
+#      - /data/:/opt/couchdb/data
+    network_mode: bridge
+
+  couchdb2.rd:
+    container_name: couchdb2-rd-service
+    image: hyperledger/fabric-couchdb
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - 6984:5984
+#    volumes:
+#      - /data/:/opt/couchdb/data
+    network_mode: bridge
+
+  couchdb1.ktb:
+    container_name: couchdb1-ktb-service
+    image: hyperledger/fabric-couchdb
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - 7984:5984
+#    volumes:
+#      - /data/:/opt/couchdb/data
+    network_mode: bridge
+
+  couchdb2.ktb:
+    container_name: couchdb2-ktb-service
+    image: hyperledger/fabric-couchdb
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - 8984:5984
+#    volumes:
+#      - /data/:/opt/couchdb/data
+    network_mode: bridge
+
